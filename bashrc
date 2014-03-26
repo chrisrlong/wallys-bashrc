@@ -43,7 +43,7 @@
 
 NC='\033[m'  # Color Reset
 
-# ===Normal==           ; ==Bold==                 ; ==Background==
+# ===Normal==         ; ==Bold==             ; ==Background==
   Black='\033[0;30m'  ; BBlack='\033[1;30m'  ; On_Black='\033[40m'
   Red='\033[0;31m'    ; BRed='\033[1;31m'    ; On_Red='\033[41m'
   Green='\033[0;32m'  ; BGreen='\033[1;32m'  ; On_Green='\033[42m'
@@ -67,7 +67,6 @@ fi
 CPU_GRAPH='             '
 CPU_COLOUR=$Green
 CPU_LOAD='0'
-#eval "$1=\"${CPU_COLOUR}${BG}${CPU_LOAD}%\""
 
 ###############################################################################
 ## Hostname, user, ssh connection etc - to make a pretty prompt
@@ -85,7 +84,8 @@ fi
 if [ -z "${SUDO_USER}" ]; then
 	SHELL_USER="\[${PRIV_COLOUR}$(whoami)"
 else
-	SHELL_USER="\[${Cyan}${SUDO_USER}\[${White}[\[${PRIV_COLOUR}$(whoami)\[${White}]"
+	SHELL_USER="\[${Cyan}${SUDO_USER}\[${White}[\[${PRIV_COLOUR}$(whoami)\
+\[${White}]"
 fi
 
 USER_HOST="$SHELL_USER\[${Purple}@\[${PRIV_COLOUR}\h"
@@ -117,7 +117,8 @@ function UpdateLoadAvg
 	fi
 	
 	if [ "$LOAD_AVG" != '' ]; then
-		CPU_LOAD=$(bc <<< "scale=4; x = ( $LOAD_AVG / $CPU_COUNT ) * 50; scale=0; x/1")
+		CPU_LOAD=$(bc <<< "scale=4; x = ( $LOAD_AVG / $CPU_COUNT ) * 50; \
+scale=0; x/1")
 		if [ $CPU_LOAD -le 30 ]; then
 			CPU_COLOUR=$Green
 			CPU_GRAPH_BAR='_'
@@ -149,20 +150,32 @@ function UpdateStatus
 	echo -en "\033[0;0f${BLANK_LINE}"
 	echo -en "\033[0;0f${White}${On_Blue}$(date)  "
 	
-	[[ $COLS -lt 70 ]] && ROW=$(( $ROW + 1 )) && echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
-	echo -en "${White}${On_Blue}${USER}${Purple}${On_Blue}@${White}${On_Blue}$(hostname -s)  "
-	[[ $COLS -lt 110 ]] && ROW=$(( $ROW + 1 )) && echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
-	echo -en "${White}${On_Blue}CPU: ${CPU_COLOUR}${On_Blue}${CPU_LOAD}% [${CPU_GRAPH}]  "
-	[[ $COLS -lt 160 ]] && ROW=$(( $ROW + 1 )) && echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
+	[[ $COLS -lt 70 ]] && ROW=$(( $ROW + 1 )) && 
+		echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
+	echo -en "${White}${On_Blue}${USER}${Purple}${On_Blue}@${White}${On_Blue}\
+$(hostname -s)  "
+
+	[[ $COLS -lt 110 ]] && ROW=$(( $ROW + 1 )) &&
+		echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
+	echo -en "${White}${On_Blue}CPU: ${CPU_COLOUR}${On_Blue}${CPU_LOAD}% \
+[${CPU_GRAPH}]  "
+
+	[[ $COLS -lt 160 ]] && ROW=$(( $ROW + 1 )) && 
+		echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
 	echo -en "${White}${On_Blue}Users: [$USERS_BRIEF]"
 	echo -en "${NC}"
 	tput rc
 }
 
 ## Sub-shell
+# This sub-shell wakes on interrupts or every second (whichever comes first)
+# It's solely responsible for updating CPU graphs, logged on users, etc.
+# Every second it redraws the status bar (top of the screen)
+# Redrawing of the status bar can be paused using SIGUSR* interrupts.
+# Ran as a sub-shell to keep your bash shell free to do more important stuff.
 {
 	REFRESH=1
-	# curiously after wait() - in a queue, sigusr2 is always dealt with after sigusr1
+	
 	trap 'REFRESH=0; UpdateStatus' SIGUSR2
 	trap 'REFRESH=1' SIGUSR1
 
@@ -180,7 +193,7 @@ function UpdateStatus
 			UpdateStatus
 		fi
 
-		# The following is a work-around to let the traps interrupt sleeping ...
+		# The following is a work-around to let the traps interrupt sleeping.
 		#   But also not continue the bigger while[1] loop
 		sleep 1 &
 		SLEEP_PID=$!
@@ -200,11 +213,12 @@ trap 'kill "$UPDATER_PID"' EXIT
 ## Set PS1
 
 PS1a="\[${White}\]\D{%b%d %H:%M:%S}"
-PS1b="${USER_HOST}\[${Purple}\]:\[${Cyan}\]\w\[${PRIV_BCOLOUR}\]${PRIV_PROMPT}\[${NC}\] "
+PS1b="${USER_HOST}\[${Purple}\]:\[${Cyan}\]\w\[${PRIV_BCOLOUR}\]\
+${PRIV_PROMPT}\\[${NC}\] "
 
 function SetPrompt
 {
-	## Keet at start
+	## Keep at start
 	if [ $? -eq 0 ]; then
 		RESULT_COLOUR=$Green;
 	else
@@ -228,15 +242,13 @@ ${h}h${m}m${s}\[${White}\]] ${PS1b}"
 	else
 		PS1=$PS1b
 	fi
-	
-	## Set the cursor position to bottom left
-#	echo -en "\033[${ROWS};0f"
 
 	# Start the clock
 	kill -s sigusr2 "$UPDATER_PID"
 
 	## Keep at end
-	trap 'CMD_START_TIME=$(date +%s); kill -s sigusr1 "$UPDATER_PID"; trap - DEBUG' DEBUG
+	trap 'CMD_START_TIME=$(date +%s); kill -s sigusr1 "$UPDATER_PID"; \
+trap - DEBUG' DEBUG
 }
 
 ###############################################################################
@@ -248,4 +260,7 @@ PROMPT_COMMAND='SetPrompt'
 ## Any final initialisations before continuing
 
 CMD_START_TIME=$(date +%s)
+
+# Make some room for the status bar
+echo -e "\n\n"
 
