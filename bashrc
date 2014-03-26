@@ -1,5 +1,6 @@
 #
 # wally's bashrc
+# https://github.com/wallyhall/wallys-bashrc
 #
 # The MIT License (MIT)
 # 
@@ -53,48 +54,114 @@ NC='\033[m'  # Color Reset
   Cyan='\033[0;36m'   ; BCyan='\033[1;36m'   ; On_Cyan='\033[46m'
   White='\033[0;37m'  ; BWhite='\033[1;37m'  ; On_White='\033[47m'
 
-###############################################################################
-## Detect number of CPU cores
+# Default colour mapping
+c1=$Cyan
+c2=$White
+c3=$White
+c4=$Red
+c5=$BRed
+c6=$Green
+c7=$BGreen
+c8=$Purple
+c9=$White
 
-if [ -r "/proc/cpuinfo" ]; then
-	CPU_COUNT=$(grep -c 'processor' /proc/cpuinfo)
-elif [ "$(uname)" == 'Darwin' ]; then
-	CPU_COUNT=$(sysctl -n machdep.cpu.core_count)
-else
-	CPU_COUNT=4
-fi
+c10=$White
+c11=$White
+c12=$Purple
+c13=$White
+c14=$White
+c15=$White
+c16=$White
 
-CPU_GRAPH='             '
-CPU_COLOUR=$Green
-CPU_LOAD='0'
+c17=$White
+c18=$Purple
+c19=$Cyan
+c20=$White
+c21=$White
+c22=$White
 
-###############################################################################
-## Hostname, user, ssh connection etc - to make a pretty prompt
+c23=$Green
+c24=$Red
 
-if [ "$(whoami)" == "root" ]; then
-	PRIV_PROMPT='#';
-	PRIV_COLOUR=$Red;
-	PRIV_BCOLOUR=$BRed;
-else
-	PRIV_PROMPT='$';
-	PRIV_COLOUR=$Green;
-	PRIV_BCOLOUR=$BGreen;
-fi
+c25=$Purple
 
-if [ -z "${SUDO_USER}" ]; then
-	SHELL_USER="\[${PRIV_COLOUR}$(whoami)"
-else
-	SHELL_USER="\[${Cyan}${SUDO_USER}\[${White}[\[${PRIV_COLOUR}$(whoami)\
-\[${White}]"
-fi
-
-USER_HOST="$SHELL_USER\[${Purple}@\[${PRIV_COLOUR}\h"
-if [ ! -z "${SSH_CONNECTION}" ]; then
-	USER_HOST="[${USER_HOST}\[${Purple}:\[${PRIV_COLOUR}$(echo \
-		"$SSH_CONNECTION" | cut -d' ' -f 4)\[${White}]"
-fi
+b1=$On_Blue
 
 ##############################################################################
+
+function err ()
+{
+	echo -e "$1" 1>&2
+}
+
+function wbrc
+{
+	if [ ! -z $1 ]; then
+		case "$1" in
+			sb )
+				if [ -z $2 ] || [[ ! $2 =~ ^(on|off)$ ]]; then
+					err "wbrc sb <on|off>"
+				elif [ $2 == 'on' ]; then
+					CLOCK_ENABLED=1
+					echo "$UPDATER_PID"
+					[ ! -z $UPDATER_PID ] && kill -s sigusr2 "$UPDATER_PID"
+				else
+					CLOCK_ENABLED=0
+					[ ! -z $UPDATER_PID ] && kill -s sigusr1 "$UPDATER_PID"
+				fi
+				;;
+		esac
+	else
+		less <<EOT
+	
+	wally's bashrc formally welcomes you.
+	=====================================
+
+	About
+	-----
+	wbrc is the result of some patient fiddling by Matthew Hall (wally) and
+	Chris Long.
+	
+	Functionally it adds little, asthetically it adds a splash.
+	
+	The UI is intended to be responsive to terminal size, maintaining a pretty
+	and helpful appearance even when you're tight on space.
+	
+	
+	Alpha warning
+	-------------
+	PLEASE NOTE:
+		The version you're running is deemed alpha.
+		There are bugs.  There will be more bugs.  It will act unexpectedly.
+	
+	It's hoped that you use wbrc - and *enjoy* using it.
+	Please feel very welcome in providing comments and patches ...
+		https://github.com/wallyhall/wallys-bashrc
+	
+
+	Colour configuration
+	--------------------
+	Configuration of colours etc is welcome via editing ~/.wbrc
+	
+	Grab the default colour mix from github:
+		https://github.com/wallyhall/wallys-bashrc
+		
+	Then mix and match as you please.  All colours can be changed.
+	
+	
+	Status bar toggling
+	-------------------
+	The status bar can be toggled.
+	
+	wbrc sb on	 # enables
+	wbrc sb off  # disables
+	
+	It can be set to default "off" in your .wrbc file.
+	Just add "wbrc sb off" to it.
+
+EOT
+	fi
+}
 
 function UpdateUsers
 {
@@ -143,30 +210,87 @@ function UpdateStatus
 		I=$((I - 1))
 		BLANK_LINE="${BLANK_LINE} "
 	done	
-	BLANK_LINE="${On_Blue}${BLANK_LINE}${NC}"
+	BLANK_LINE="${b1}${BLANK_LINE}${NC}"
 	
 	ROW=1
 	tput sc
 	echo -en "\033[0;0f${BLANK_LINE}"
-	echo -en "\033[0;0f${White}${On_Blue}$(date)  "
+	echo -en "\033[0;0f${c10}${b1}$(date)  "
 	
 	[[ $COLS -lt 70 ]] && ROW=$(( $ROW + 1 )) && 
 		echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
-	echo -en "${White}${On_Blue}${USER}${Purple}${On_Blue}@${White}${On_Blue}\
+	echo -en "${c11}${b1}${USER}${c12}${b1}@${c13}${b1}\
 $(hostname -s)  "
 
 	[[ $COLS -lt 110 ]] && ROW=$(( $ROW + 1 )) &&
 		echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
-	echo -en "${White}${On_Blue}CPU: ${CPU_COLOUR}${On_Blue}${CPU_LOAD}% \
+	echo -en "${c14}${b1}CPU: ${CPU_COLOUR}${b1}${CPU_LOAD}% \
 [${CPU_GRAPH}]  "
 
 	[[ $COLS -lt 160 ]] && ROW=$(( $ROW + 1 )) && 
 		echo -en "\033[$ROW;0f${BLANK_LINE}\033[$ROW;0f"
-	echo -en "${White}${On_Blue}Users: [$USERS_BRIEF]"
+	echo -en "${c15}${b1}Users: [${c16}${b1}$USERS_BRIEF]"
 	echo -en "${NC}"
 	tput rc
 }
 
+###############################################################################
+## Load the .wbrc
+
+CLOCK_ENABLED=1
+
+if [ -r ~/.wbrc ]; then
+	if [ $(stat -f'%#p' ~/.wbrc) -ne 0100600 ]; then
+		err "\n\n\n** Not loading .wbrc - permissions must be 0600 for security."
+	elif [ $(stat -f'%u' ~/.wbrc) -ne $(id -u) ]; then
+		err "\n\n\n** Not loading .wbrc - must be owned by your user."
+	else
+		. ~/.wbrc
+	fi
+fi
+
+###############################################################################
+## Detect number of CPU cores
+
+if [ -r "/proc/cpuinfo" ]; then
+	CPU_COUNT=$(grep -c 'processor' /proc/cpuinfo)
+elif [ "$(uname)" == 'Darwin' ]; then
+	CPU_COUNT=$(sysctl -n machdep.cpu.core_count)
+else
+	CPU_COUNT=4
+fi
+
+CPU_GRAPH='             '
+CPU_COLOUR=$Green
+CPU_LOAD='0'
+
+###############################################################################
+## Hostname, user, ssh connection etc - to make a pretty prompt
+
+if [ "$(whoami)" == "root" ]; then
+	PRIV_PROMPT='#'
+	PRIV_COLOUR=$c4
+	PRIV_BCOLOUR=$c5
+else
+	PRIV_PROMPT='$'
+	PRIV_COLOUR=$c6
+	PRIV_BCOLOUR=$c7
+fi
+
+if [ -z "${SUDO_USER}" ]; then
+	SHELL_USER="\[${PRIV_COLOUR}$(whoami)"
+else
+	SHELL_USER="\[${c1}${SUDO_USER}\[${c2}[\[${PRIV_COLOUR}$(whoami)\
+\[${c3}]"
+fi
+
+USER_HOST="$SHELL_USER\[${c8}@\[${PRIV_COLOUR}\h"
+if [ ! -z "${SSH_CONNECTION}" ]; then
+	USER_HOST="[${USER_HOST}\[${c25}:\[${PRIV_COLOUR}$(echo \
+		"$SSH_CONNECTION" | cut -d' ' -f 4)\[${c9}]"
+fi
+
+###############################################################################
 ## Sub-shell
 # This sub-shell wakes on interrupts or every second (whichever comes first)
 # It's solely responsible for updating CPU graphs, logged on users, etc.
@@ -212,17 +336,17 @@ trap 'kill "$UPDATER_PID"' EXIT
 ##############################################################################
 ## Set PS1
 
-PS1a="\[${White}\]\D{%b%d %H:%M:%S}"
-PS1b="${USER_HOST}\[${Purple}\]:\[${Cyan}\]\w\[${PRIV_BCOLOUR}\]\
+PS1a="\[${c17}\]\D{%b%d %H:%M:%S}"
+PS1b="${USER_HOST}\[${c18}\]:\[${c19}\]\w\[${PRIV_BCOLOUR}\]\
 ${PRIV_PROMPT}\\[${NC}\] "
 
 function SetPrompt
 {
 	## Keep at start
 	if [ $? -eq 0 ]; then
-		RESULT_COLOUR=$Green;
+		RESULT_COLOUR=$c23;
 	else
-		RESULT_COLOUR=$Red;
+		RESULT_COLOUR=$c24;
 	fi
 	
 	((DURATION=$(date +%s)-$CMD_START_TIME))
@@ -232,19 +356,17 @@ function SetPrompt
 	
 	COLS=$(tput cols)
 	ROWS=$(tput lines)
-	
-	LOAD_AVG=''
 
 	## Responsive sizing
 	if [ $COLS -gt 80 ]; then
-		PS1="${PS1a} \[${White}\][${LOAD_AVG}\[${White}\]+\[${RESULT_COLOUR}\]\
-${h}h${m}m${s}\[${White}\]] ${PS1b}"
+		PS1="${PS1a} \[${20}\][\[${c21}\]+\[${RESULT_COLOUR}\]\
+${h}h${m}m${s}\[${c22}\]] ${PS1b}"
 	else
 		PS1=$PS1b
 	fi
 
 	# Start the clock
-	kill -s sigusr2 "$UPDATER_PID"
+	[[ $CLOCK_ENABLED -eq 1 ]] && kill -s sigusr2 "$UPDATER_PID"
 
 	## Keep at end
 	trap 'CMD_START_TIME=$(date +%s); kill -s sigusr1 "$UPDATER_PID"; \
@@ -262,5 +384,5 @@ PROMPT_COMMAND='SetPrompt'
 CMD_START_TIME=$(date +%s)
 
 # Make some room for the status bar
-echo -e "\n\n"
+echo -e "\n\n** wbrc active **"
 
